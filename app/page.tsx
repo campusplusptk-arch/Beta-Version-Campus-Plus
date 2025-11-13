@@ -7,6 +7,8 @@ import {
   useEffect,
   ChangeEvent,
 } from "react";
+import Link from "next/link";
+import { isAuthenticated, canEditEvent } from "@/lib/auth";
 
 type EventRow = {
   id: string;
@@ -17,6 +19,7 @@ type EventRow = {
   location: string;
   tags: string[];
   current_attendees: number;
+  creator_id?: string | null;
 };
 
 // Helper functions for date manipulation
@@ -166,6 +169,7 @@ export default function Home() {
         tags: event.tags,
         attendees: event.current_attendees,
         isMultiDay: isMultiDay || undefined,
+        creatorId: event.creator_id,
       };
     });
   }, [filteredEvents]);
@@ -261,7 +265,19 @@ export default function Home() {
             </div>
           ) : displayEvents.length > 0 ? (
             displayEvents.map((event) => (
-              <EventCard key={event.id} {...event} />
+              <EventCard 
+                key={event.id} 
+                id={event.id}
+                title={event.title}
+                club={event.club}
+                date={event.date}
+                time={event.time}
+                location={event.location}
+                tags={event.tags}
+                attendees={event.attendees}
+                isMultiDay={event.isMultiDay}
+                creatorId={event.creatorId}
+              />
             ))
           ) : (
             <div className="col-span-full flex flex-col items-center justify-center py-16 text-center text-neutral-600">
@@ -275,6 +291,7 @@ export default function Home() {
 }
 
 function EventCard({
+  id,
   title,
   club,
   date,
@@ -283,7 +300,9 @@ function EventCard({
   tags,
   attendees,
   isMultiDay,
+  creatorId,
 }: {
+  id: string;
   title: string;
   club: string;
   date: string;
@@ -292,7 +311,10 @@ function EventCard({
   tags: string[];
   attendees: number;
   isMultiDay?: boolean;
+  creatorId?: string | null;
 }) {
+  const showEditButton = isAuthenticated() && canEditEvent(creatorId);
+
   return (
     <article className="flex h-full flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-6 shadow-soft-sm">
       <div>
@@ -300,11 +322,21 @@ function EventCard({
           <p className="text-sm font-medium uppercase tracking-wide text-primary-700">
             {date}
           </p>
-          {isMultiDay && (
-            <span className="shrink-0 rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700">
-              Multi-day
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {isMultiDay && (
+              <span className="shrink-0 rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700">
+                Multi-day
+              </span>
+            )}
+            {showEditButton && (
+              <Link
+                href={`/events/edit/${id}`}
+                className="shrink-0 rounded-lg border border-primary-300 bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700 hover:bg-primary-100 transition-colors"
+              >
+                Edit
+              </Link>
+            )}
+          </div>
         </div>
         <h2 className="mb-2 text-2xl font-semibold text-neutral-700">{title}</h2>
         <p className="mb-4 text-sm text-neutral-500">{club}</p>

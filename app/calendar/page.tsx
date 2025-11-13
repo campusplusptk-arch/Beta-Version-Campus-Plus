@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { isAuthenticated, canEditEvent } from "@/lib/auth";
 
 type EventRow = {
   id: string;
@@ -11,6 +13,7 @@ type EventRow = {
   location: string;
   tags: string[];
   current_attendees: number;
+  creator_id?: string | null;
 };
 
 export default function CalendarPage() {
@@ -361,6 +364,8 @@ export default function CalendarPage() {
                           .filter(Boolean)
                           .join(" - ");
 
+                        const showEditButton = isAuthenticated() && canEditEvent(event.creator_id);
+
                         return (
                           <div
                             key={event.id}
@@ -370,11 +375,21 @@ export default function CalendarPage() {
                               <h4 className="text-lg font-semibold text-neutral-700">
                                 {event.title}
                               </h4>
-                              {isMultiDay && (
-                                <span className="shrink-0 rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700">
-                                  Multi-day
-                                </span>
-                              )}
+                              <div className="flex items-center gap-2">
+                                {isMultiDay && (
+                                  <span className="shrink-0 rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700">
+                                    Multi-day
+                                  </span>
+                                )}
+                                {showEditButton && (
+                                  <Link
+                                    href={`/events/edit/${event.id}`}
+                                    className="shrink-0 rounded-lg border border-primary-300 bg-primary-50 px-2 py-1 text-xs font-medium text-primary-700 hover:bg-primary-100 transition-colors"
+                                  >
+                                    Edit
+                                  </Link>
+                                )}
+                              </div>
                             </div>
                             <p className="mb-2 text-sm text-neutral-500">
                               {event.club}

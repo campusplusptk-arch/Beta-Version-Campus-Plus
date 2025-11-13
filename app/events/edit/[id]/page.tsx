@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, FormEvent, ChangeEvent, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { authenticate, isAuthenticated, getCurrentUserId } from "@/lib/auth";
+import { isAuthenticated, getCurrentUserId, canEditEvent } from "@/lib/auth";
 
 type EventFormData = {
   title: string;
@@ -13,6 +13,18 @@ type EventFormData = {
   location: string;
   tags: string[];
   current_attendees: number;
+};
+
+type EventRow = {
+  id: string;
+  title: string;
+  club: string;
+  starts_at: string;
+  ends_at?: string | null;
+  location: string;
+  tags: string[];
+  current_attendees: number;
+  creator_id?: string | null;
 };
 
 const availableTags = [
@@ -25,12 +37,14 @@ const availableTags = [
   "networking",
 ] as const;
 
-export default function CreateEventPage() {
+export default function EditEventPage() {
   const router = useRouter();
+  const params = useParams();
+  const eventId = params.id as string;
+  
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [password, setPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
   
   const [formData, setFormData] = useState<EventFormData>({
@@ -45,10 +59,58 @@ export default function CreateEventPage() {
 
   const [errors, setErrors] = useState<Partial<Record<keyof EventFormData, string>>>({});
 
-  // Check if user is already authenticated on mount
+  // Check authentication and load event data
   useEffect(() => {
-    setAuthenticated(isAuthenticated());
-  }, []);
+    const loadEvent = async () => {
+      // Check authentication
+      if (!isAuthenticated()) {
+        setError("You must be authenticated to edit events. Please go to the create page and enter your password.");
+        setIsLoading(false);
+        return;
+      }
+
+      setAuthenticated(true);
+
+      try {
+        // Fetch event data
+        const response = await fetch(`/api/events/${eventId}`);
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to load event');
+        }
+
+        const event: EventRow = result.data;
+
+        // Check if user can edit this event
+        if (!canEditEvent(event.creator_id)) {
+          setError("You can only edit events you created.");
+          setIsLoading(false);
+          return;
+        }
+
+        // Pre-populate form
+        const startDate = new Date(event.starts_at);
+        const endDate = event.ends_at ? new Date(event.ends_at) : null;
+        
+        setFormData({
+          title: event.title,
+          club: event.club,
+          starts_at: startDate.toISOString().slice(0, 16),
+          ends_at: endDate ? endDate.toISOString().slice(0, 16) : "",
+          location: event.location,
+          tags: event.tags || [],
+          current_attendees: event.current_attendees || 0,
+        });
+      } catch (err: any) {
+        setError(err.message || 'Failed to load event');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadEvent();
+  }, [eventId]);
 
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -74,32 +136,6 @@ export default function CreateEventPage() {
         ? prev.tags.filter((t) => t !== tag)
         : [...prev.tags, tag],
     }));
-  };
-
-  const handlePasswordSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setPasswordError("");
-    setIsAuthenticating(true);
-
-    try {
-      if (!password.trim()) {
-        setPasswordError("Please enter a password.");
-        return;
-      }
-      
-      const isValid = await authenticate(password);
-      if (isValid) {
-        setAuthenticated(true);
-        setPassword("");
-      } else {
-        setPasswordError("Invalid password. Please check your password and try again.");
-      }
-    } catch (error) {
-      console.error("Authentication error:", error);
-      setPasswordError("An error occurred during authentication. Please try again.");
-    } finally {
-      setIsAuthenticating(false);
-    }
   };
 
   const validateForm = (): boolean => {
@@ -152,19 +188,13 @@ export default function CreateEventPage() {
     setIsSubmitting(true);
 
     try {
-      // Check authentication before submitting
-      if (!authenticated) {
-        alert("Please authenticate with a password first.");
-        return;
-      }
-
       const creatorId = getCurrentUserId();
       if (!creatorId) {
         alert("Authentication error. Please try again.");
         return;
       }
 
-      // Create new event
+      // Update event
       const eventData = {
         title: formData.title.trim(),
         club: formData.club.trim(),
@@ -179,8 +209,8 @@ export default function CreateEventPage() {
       };
 
       // Save to API
-      const response = await fetch('/api/events', {
-        method: 'POST',
+      const response = await fetch(`/api/events/${eventId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -190,14 +220,14 @@ export default function CreateEventPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to create event');
+        throw new Error(result.error || 'Failed to update event');
       }
 
       // Redirect to dashboard
       router.push("/");
     } catch (error: any) {
-      console.error("Error creating event:", error);
-      alert(error.message || "Failed to create event. Please try again.");
+      console.error("Error updating event:", error);
+      alert(error.message || "Failed to update event. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -208,6 +238,52 @@ export default function CreateEventPage() {
   const minDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
     .toISOString()
     .slice(0, 16);
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen w-full bg-neutral-50 py-8">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center py-16">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-700"></div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen w-full bg-neutral-50 py-8">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <Link
+              href="/"
+              className="mb-4 inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-primary-700"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+              Back to Dashboard
+            </Link>
+            <div className="rounded-lg border border-red-200 bg-red-50 p-6">
+              <h2 className="mb-2 text-xl font-semibold text-red-700">Error</h2>
+              <p className="text-red-600">{error}</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen w-full bg-neutral-50 py-8">
@@ -232,79 +308,36 @@ export default function CreateEventPage() {
             </svg>
             Back to Dashboard
           </Link>
-          <h1 className="text-4xl font-bold text-neutral-700">Create New Event</h1>
+          <h1 className="text-4xl font-bold text-neutral-700">Edit Event</h1>
           <p className="mt-2 text-lg text-neutral-500">
-            Fill in the details below to create a new campus event
+            Update the details below
           </p>
         </div>
 
-        {/* Password Authentication */}
-        {!authenticated ? (
-          <div className="mb-8 rounded-lg border border-neutral-200 bg-white p-6 shadow-soft">
-            <h2 className="mb-4 text-xl font-semibold text-neutral-700">
-              Authentication Required
-            </h2>
-            <p className="mb-4 text-sm text-neutral-600">
-              You need a password to create events. Enter your password below.
-            </p>
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-neutral-700 mb-2"
-                >
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setPasswordError("");
-                  }}
-                  className={`input w-full ${passwordError ? "border-red-500" : ""}`}
-                  required
-                />
-                {passwordError && (
-                  <p className="mt-1 text-sm text-red-500">{passwordError}</p>
-                )}
-              </div>
-              <button
-                type="submit"
-                disabled={isAuthenticating}
-                className="w-full rounded-lg bg-primary-700 px-6 py-3 text-white font-medium shadow-soft hover:bg-primary-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isAuthenticating ? "Authenticating..." : "Authenticate"}
-              </button>
-            </form>
-          </div>
-        ) : (
+        {authenticated && (
           <div className="mb-6 rounded-lg border border-primary-200 bg-primary-50 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <svg
-                  className="h-5 w-5 text-primary-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <span className="text-sm font-medium text-primary-700">
-                  Authenticated - You can now create events
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <svg
+                className="h-5 w-5 text-primary-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span className="text-sm font-medium text-primary-700">
+                Authenticated - You can edit this event
+              </span>
             </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6" style={{ display: authenticated ? 'block' : 'none' }}>
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Event Title */}
           <div>
             <label
@@ -473,7 +506,7 @@ export default function CreateEventPage() {
               disabled={isSubmitting}
               className="flex-1 rounded-lg bg-primary-700 px-6 py-3 text-white font-medium shadow-soft hover:bg-primary-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Creating..." : "Create Event"}
+              {isSubmitting ? "Updating..." : "Update Event"}
             </button>
             <Link
               href="/"

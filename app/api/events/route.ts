@@ -45,6 +45,14 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Validate creator_id is provided
+    if (!body.creator_id) {
+      return NextResponse.json(
+        { error: 'Authentication required. Please provide creator_id.' },
+        { status: 401 }
+      );
+    }
+    
     // Prepare event data
     const eventData = {
       title: body.title,
@@ -55,13 +63,14 @@ export async function POST(request: NextRequest) {
       tags: body.tags || [],
       current_attendees: body.current_attendees || 0,
       status: 'scheduled',
+      creator_id: body.creator_id,
       created_at: new Date().toISOString(),
     };
     
     // If Supabase is not configured, return mock data
     if (!isSupabaseConfigured()) {
       return NextResponse.json({ 
-        data: { ...eventData, id: Date.now().toString() } 
+        data: { ...eventData, id: Date.now().toString(), creator_id: body.creator_id } 
       }, { status: 201 });
     }
     
