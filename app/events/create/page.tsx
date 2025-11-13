@@ -115,14 +115,8 @@ export default function CreateEventPage() {
     setIsSubmitting(true);
 
     try {
-      // Get existing events from localStorage
-      const existingEvents = JSON.parse(
-        localStorage.getItem("events") || "[]"
-      );
-
       // Create new event
-      const newEvent = {
-        id: Date.now().toString(),
+      const eventData = {
         title: formData.title.trim(),
         club: formData.club.trim(),
         starts_at: new Date(formData.starts_at).toISOString(),
@@ -134,17 +128,26 @@ export default function CreateEventPage() {
         current_attendees: formData.current_attendees,
       };
 
-      // Add to events array
-      const updatedEvents = [...existingEvents, newEvent];
+      // Save to API
+      const response = await fetch('/api/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData),
+      });
 
-      // Save to localStorage
-      localStorage.setItem("events", JSON.stringify(updatedEvents));
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create event');
+      }
 
       // Redirect to dashboard
       router.push("/");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating event:", error);
-      alert("Failed to create event. Please try again.");
+      alert(error.message || "Failed to create event. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -201,7 +204,6 @@ export default function CreateEventPage() {
               value={formData.title}
               onChange={handleInputChange}
               className={`input w-full ${errors.title ? "border-red-500" : ""}`}
-              placeholder="e.g., Hackathon Kickoff"
             />
             {errors.title && (
               <p className="mt-1 text-sm text-red-500">{errors.title}</p>
@@ -223,7 +225,6 @@ export default function CreateEventPage() {
               value={formData.club}
               onChange={handleInputChange}
               className={`input w-full ${errors.club ? "border-red-500" : ""}`}
-              placeholder="e.g., Tech Innovators"
             />
             {errors.club && (
               <p className="mt-1 text-sm text-red-500">{errors.club}</p>
@@ -290,7 +291,6 @@ export default function CreateEventPage() {
               value={formData.location}
               onChange={handleInputChange}
               className={`input w-full ${errors.location ? "border-red-500" : ""}`}
-              placeholder="e.g., Innovation Hub, Room 101"
             />
             {errors.location && (
               <p className="mt-1 text-sm text-red-500">{errors.location}</p>
@@ -344,7 +344,6 @@ export default function CreateEventPage() {
               }
               min="0"
               className="input w-full"
-              placeholder="0"
             />
             <p className="mt-1 text-xs text-neutral-500">
               Optional: Set the initial number of attendees

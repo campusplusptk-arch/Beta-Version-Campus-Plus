@@ -13,58 +13,31 @@ type EventRow = {
   current_attendees: number;
 };
 
-const today = new Date();
-const DEFAULT_EVENTS: EventRow[] = [
-  {
-    id: "1",
-    title: "Hackathon Kickoff",
-    club: "Tech Innovators",
-    starts_at: withTime(today, 10, 0).toISOString(),
-    ends_at: withTime(today, 14, 0).toISOString(),
-    location: "Innovation Hub",
-    tags: ["tech", "career", "networking"],
-    current_attendees: 48,
-  },
-  {
-    id: "2",
-    title: "Evening Study Session",
-    club: "Academic Success Center",
-    starts_at: withTime(today, 19, 0).toISOString(),
-    ends_at: withTime(today, 21, 0).toISOString(),
-    location: "Library Commons",
-    tags: ["study"],
-    current_attendees: 23,
-  },
-  {
-    id: "3",
-    title: "Saturday Brunch Social",
-    club: "Campus Life",
-    starts_at: upcomingWeekendDate(11, 0).toISOString(),
-    ends_at: upcomingWeekendDate(13, 0).toISOString(),
-    location: "Student Union Lawn",
-    tags: ["food", "social"],
-    current_attendees: 67,
-  },
-];
-
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-  const [events, setEvents] = useState<EventRow[]>(DEFAULT_EVENTS);
+  const [events, setEvents] = useState<EventRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load events from localStorage
+  // Load events from API
   useEffect(() => {
-    const loadEvents = () => {
+    const loadEvents = async () => {
       try {
-        const storedEvents = localStorage.getItem("events");
-        if (storedEvents) {
-          const parsedEvents: EventRow[] = JSON.parse(storedEvents);
-          const defaultIds = new Set(DEFAULT_EVENTS.map((e) => e.id));
-          const newEvents = parsedEvents.filter((e) => !defaultIds.has(e.id));
-          setEvents([...DEFAULT_EVENTS, ...newEvents]);
+        setIsLoading(true);
+        const response = await fetch('/api/events?status=scheduled');
+        const result = await response.json();
+        
+        if (response.ok && result.data) {
+          setEvents(result.data);
+        } else {
+          console.error("Error loading events:", result.error);
+          setEvents([]);
         }
       } catch (error) {
-        console.error("Error loading events from localStorage:", error);
+        console.error("Error loading events from API:", error);
+        setEvents([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -486,32 +459,5 @@ export default function CalendarPage() {
 
 function formatDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function withTime(baseDate: Date, hour: number, minute: number) {
-  const result = new Date(baseDate);
-  result.setHours(hour, minute, 0, 0);
-  return result;
-}
-
-function upcomingWeekendDate(hour: number, minute: number) {
-  const now = new Date();
-  const saturday = getUpcomingDay(now, 6);
-  const target = withTime(saturday, hour, minute);
-  return target < now ? withTime(addDays(saturday, 7), hour, minute) : target;
-}
-
-function getUpcomingDay(date: Date, targetDay: number) {
-  const result = new Date(date);
-  const distance = (targetDay - result.getDay() + 7) % 7;
-  result.setDate(result.getDate() + distance);
-  result.setHours(0, 0, 0, 0);
-  return result;
-}
-
-function addDays(date: Date, amount: number) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + amount);
-  return result;
 }
 

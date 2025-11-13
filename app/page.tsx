@@ -47,40 +47,6 @@ function addDays(date: Date, amount: number) {
   return result;
 }
 
-const today = new Date();
-const DEFAULT_EVENTS: EventRow[] = [
-  {
-    id: "1",
-    title: "Hackathon Kickoff",
-    club: "Tech Innovators",
-    starts_at: withTime(today, 10, 0).toISOString(),
-    ends_at: withTime(today, 14, 0).toISOString(),
-    location: "Innovation Hub",
-    tags: ["tech", "career", "networking"],
-    current_attendees: 48,
-  },
-  {
-    id: "2",
-    title: "Evening Study Session",
-    club: "Academic Success Center",
-    starts_at: withTime(today, 19, 0).toISOString(),
-    ends_at: withTime(today, 21, 0).toISOString(),
-    location: "Library Commons",
-    tags: ["study"],
-    current_attendees: 23,
-  },
-  {
-    id: "3",
-    title: "Saturday Brunch Social",
-    club: "Campus Life",
-    starts_at: upcomingWeekendDate(11, 0).toISOString(),
-    ends_at: upcomingWeekendDate(13, 0).toISOString(),
-    location: "Student Union Lawn",
-    tags: ["food", "social"],
-    current_attendees: 67,
-  },
-];
-
 const timeFilters = ["All", "Today", "Tonight", "This Weekend"] as const;
 const tagFilters = [
   "All",
@@ -101,22 +67,28 @@ export default function Home() {
     (typeof tagFilters)[number]
   >("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [events, setEvents] = useState<EventRow[]>(DEFAULT_EVENTS);
+  const [events, setEvents] = useState<EventRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load events from localStorage on mount and when page becomes visible
+  // Load events from API
   useEffect(() => {
-    const loadEvents = () => {
+    const loadEvents = async () => {
       try {
-        const storedEvents = localStorage.getItem("events");
-        if (storedEvents) {
-          const parsedEvents: EventRow[] = JSON.parse(storedEvents);
-          // Merge with default events, avoiding duplicates by ID
-          const defaultIds = new Set(DEFAULT_EVENTS.map((e) => e.id));
-          const newEvents = parsedEvents.filter((e) => !defaultIds.has(e.id));
-          setEvents([...DEFAULT_EVENTS, ...newEvents]);
+        setIsLoading(true);
+        const response = await fetch('/api/events?status=scheduled');
+        const result = await response.json();
+        
+        if (response.ok && result.data) {
+          setEvents(result.data);
+        } else {
+          console.error("Error loading events:", result.error);
+          setEvents([]);
         }
       } catch (error) {
-        console.error("Error loading events from localStorage:", error);
+        console.error("Error loading events from API:", error);
+        setEvents([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -218,7 +190,6 @@ export default function Home() {
             </svg>
             <input
               type="text"
-              placeholder="Search events or clubs..."
               value={searchQuery}
               onChange={handleSearchChange}
               className="input pl-12"
@@ -270,7 +241,12 @@ export default function Home() {
         </section>
 
         <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {displayEvents.length > 0 ? (
+          {isLoading ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-16 text-center text-neutral-600">
+              <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-700"></div>
+              <p className="text-neutral-500">Loading events...</p>
+            </div>
+          ) : displayEvents.length > 0 ? (
             displayEvents.map((event) => (
               <EventCard key={event.id} {...event} />
             ))
