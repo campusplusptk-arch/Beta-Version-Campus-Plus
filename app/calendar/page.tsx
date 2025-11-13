@@ -296,7 +296,7 @@ export default function CalendarPage() {
                                     ? "rounded-r-full rounded-l-none"
                                     : "rounded-full"
                                 }`}
-                                title={`${event.title}${isMultiDay ? ` (${formatDateKey(new Date(event.starts_at))} - ${formatDateKey(new Date(event.ends_at))})` : ''}`}
+                                title={`${event.title}${isMultiDay && event.ends_at ? ` (${formatDateKey(new Date(event.starts_at))} - ${formatDateKey(new Date(event.ends_at))})` : ''}`}
                               />
                             );
                           })}
