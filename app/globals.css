@@ -1,15 +1,119 @@
 @import "tailwindcss";
 
+/* PTK Campus Design System - De Anza College Inspired */
+
 :root {
+  /* Base Colors */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #222222;
+
+  /* De Anza PTK Color Theme */
+  --primary: #7C0A02;           /* Deep academic red */
+  --primary-dark: #5A0701;      /* Darker red for hover states */
+  --primary-light: #A61304;     /* Lighter red accent */
+  --primary-lighter: #D91B0A;
+  --primary-subtle: #FAE8E7;    /* Subtle red background */
+
+  --secondary: #F5B800;         /* Golden accent */
+  --secondary-dark: #CC9900;    /* Darker gold */
+  --secondary-light: #FFC933;   /* Lighter gold */
+  --secondary-lighter: #FFD966;
+  --secondary-subtle: #FFF8E1;  /* Subtle gold background */
+
+  /* Neutral colors */
+  --text-primary: #222222;
+  --text-secondary: #4A4A4A;
+  --text-tertiary: #757575;
+  --bg-white: #FFFFFF;
+  --bg-light: #F7F7F7;
+  --bg-gray: #E5E5E5;
+  --border-light: #D1D5DB;
+  --border-medium: #9CA3AF;
+
+  /* Spacing */
+  --spacing-section: 5rem;
+  --spacing-component: 2rem;
+
+  /* Shadows */
+  --shadow-soft: 0 2px 8px rgba(124, 10, 2, 0.08);
+  --shadow-medium: 0 4px 16px rgba(124, 10, 2, 0.12);
+  --shadow-hard: 0 8px 24px rgba(124, 10, 2, 0.16);
+  --shadow-glow: 0 0 20px rgba(245, 184, 0, 0.3);
 }
 
 @theme inline {
+  /* Colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  /* Primary Colors */
+  --color-primary-*: initial;
+  --color-primary-50: #FEF2F2;
+  --color-primary-100: #FEE2E2;
+  --color-primary-200: #FECACA;
+  --color-primary-300: #FCA5A5;
+  --color-primary-400: #F87171;
+  --color-primary-500: #D91B0A;
+  --color-primary-600: #A61304;
+  --color-primary-700: #7C0A02;
+  --color-primary-800: #5A0701;
+  --color-primary-900: #3F0500;
+  --color-primary: var(--primary);
+
+  /* Secondary Colors */
+  --color-secondary-*: initial;
+  --color-secondary-50: #FFFBEB;
+  --color-secondary-100: #FEF3C7;
+  --color-secondary-200: #FDE68A;
+  --color-secondary-300: #FFD966;
+  --color-secondary-400: #FFC933;
+  --color-secondary-500: #F5B800;
+  --color-secondary-600: #CC9900;
+  --color-secondary-700: #A37A00;
+  --color-secondary-800: #7A5C00;
+  --color-secondary-900: #523E00;
+  --color-secondary: var(--secondary);
+
+  /* Neutral Colors */
+  --color-neutral-*: initial;
+  --color-neutral-50: #F7F7F7;
+  --color-neutral-100: #E5E5E5;
+  --color-neutral-200: #D1D5DB;
+  --color-neutral-300: #9CA3AF;
+  --color-neutral-400: #757575;
+  --color-neutral-500: #4A4A4A;
+  --color-neutral-600: #222222;
+  --color-neutral-700: #1A1A1A;
+  --color-neutral-800: #0D0D0D;
+  --color-neutral-900: #000000;
+
+  /* Semantic Colors */
+  --color-success-50: #D1FAE5;
+  --color-success-500: #10B981;
+  --color-success-700: #059669;
+
+  --color-warning-50: #FEF3C7;
+  --color-warning-500: #F59E0B;
+  --color-warning-700: #D97706;
+
+  --color-error-50: #FEE2E2;
+  --color-error-500: #EF4444;
+  --color-error-700: #DC2626;
+
+  --color-info-50: #DBEAFE;
+  --color-info-500: #3B82F6;
+  --color-info-700: #2563EB;
+
+  /* Fonts */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-poppins), var(--font-geist-sans);
+
+  /* Shadows */
+  --shadow-soft: var(--shadow-soft);
+  --shadow-medium: var(--shadow-medium);
+  --shadow-hard: var(--shadow-hard);
+  --shadow-glow: var(--shadow-glow);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,8 +123,228 @@
   }
 }
 
+/* Base Styles */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar Styles */
+* {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: var(--primary) var(--bg-light); /* thumb track */
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--bg-light);
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--primary);
+  border-radius: 9999px;
+  border: 2px solid var(--bg-light);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary-light);
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Button Styles */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-soft hover:shadow-medium;
+  background-color: var(--primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-light);
+}
+
+.btn-primary:active {
+  background-color: var(--primary-dark);
+}
+
+.btn-primary:focus {
+  @apply ring-2 ring-primary-500 ring-offset-2;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-soft hover:shadow-medium;
+  background-color: var(--secondary);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background-color: var(--secondary-light);
+}
+
+.btn-secondary:active {
+  background-color: var(--secondary-dark);
+}
+
+.btn-secondary:focus {
+  @apply ring-2 ring-secondary-500 ring-offset-2;
+}
+
+.btn-outline-primary {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed border-2;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--primary-subtle);
+}
+
+.btn-outline-primary:focus {
+  @apply ring-2 ring-primary-500 ring-offset-2;
+}
+
+.btn-outline-secondary {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed border-2;
+  border-color: var(--secondary);
+  color: var(--secondary-dark);
+}
+
+.btn-outline-secondary:hover {
+  background-color: var(--secondary-subtle);
+}
+
+.btn-outline-secondary:focus {
+  @apply ring-2 ring-secondary-500 ring-offset-2;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  color: var(--text-primary);
+}
+
+.btn-ghost:hover {
+  @apply bg-neutral-50;
+}
+
+.btn-ghost:active {
+  @apply bg-neutral-100;
+}
+
+.btn-ghost:focus {
+  @apply ring-2 ring-neutral-300 ring-offset-2;
+}
+
+/* Card Styles */
+.card {
+  @apply bg-white rounded-lg border border-neutral-200 overflow-hidden transition-shadow duration-200;
+  box-shadow: var(--shadow-soft);
+}
+
+.card-hover {
+  @apply bg-white rounded-lg border border-neutral-200 overflow-hidden transition-shadow duration-200 cursor-pointer;
+  box-shadow: var(--shadow-soft);
+}
+
+.card-hover:hover {
+  @apply border-neutral-300;
+  box-shadow: var(--shadow-medium);
+}
+
+.card-featured {
+  @apply bg-white rounded-lg overflow-hidden transition-shadow duration-200 border-2;
+  border-color: var(--secondary);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Input Styles */
+.input {
+  @apply w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none transition-colors bg-white placeholder:text-neutral-400;
+  color: var(--text-primary);
+}
+
+.input:focus {
+  border-color: var(--primary);
+  @apply ring-2;
+  box-shadow: 0 0 0 3px rgba(124, 10, 2, 0.1);
+}
+
+/* Badge Styles */
+.badge {
+  @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.badge-primary {
+  @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium;
+  background-color: var(--primary-subtle);
+  color: var(--primary);
+}
+
+.badge-secondary {
+  @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium;
+  background-color: var(--secondary-subtle);
+  color: var(--secondary-dark);
+}
+
+.badge-success {
+  @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-success-50 text-success-700;
+}
+
+/* Gradient Text */
+.text-gradient-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-secondary {
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Background Patterns */
+.bg-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%237C0A02' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Glass Effect */
+.glass {
+  @apply bg-white/80 backdrop-blur-sm;
+}
+
+/* Gradient Backgrounds */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+}
+
+.bg-gradient-secondary {
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
+}
+
+.bg-gradient-hero {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 50%, var(--primary-lighter) 100%);
 }
