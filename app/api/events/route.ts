@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase/server';
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
+    // If Supabase is not configured, return empty array
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json({ data: [] });
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'scheduled';
     
@@ -15,7 +20,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Supabase error:', error);
       // Fallback: return empty array if Supabase is not configured
-      if (error.message.includes('Invalid API key') || error.message.includes('JWT')) {
+      if (error.message.includes('Invalid API key') || error.message.includes('JWT') || error.message.includes('Supabase not configured')) {
         return NextResponse.json({ data: [] });
       }
       throw error;
@@ -53,6 +58,13 @@ export async function POST(request: NextRequest) {
       created_at: new Date().toISOString(),
     };
     
+    // If Supabase is not configured, return mock data
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json({ 
+        data: { ...eventData, id: Date.now().toString() } 
+      }, { status: 201 });
+    }
+    
     const { data, error } = await supabaseAdmin
       .from('events')
       .insert(eventData)
@@ -62,7 +74,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Supabase error:', error);
       // If Supabase is not configured, return the data anyway for development
-      if (error.message.includes('Invalid API key') || error.message.includes('JWT')) {
+      if (error.message.includes('Invalid API key') || error.message.includes('JWT') || error.message.includes('Supabase not configured')) {
         return NextResponse.json({ 
           data: { ...eventData, id: Date.now().toString() } 
         }, { status: 201 });

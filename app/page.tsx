@@ -124,11 +124,23 @@ export default function Home() {
     return filteredEvents.map((event) => {
       const starts = new Date(event.starts_at);
       const ends = event.ends_at ? new Date(event.ends_at) : null;
-      const date = starts.toLocaleDateString(undefined, {
+      const isMultiDay = ends && formatDateKey(starts) !== formatDateKey(ends);
+      
+      const startDateStr = starts.toLocaleDateString(undefined, {
         weekday: "long",
         month: "short",
         day: "numeric",
       });
+      const endDateStr = ends
+        ? ends.toLocaleDateString(undefined, {
+            weekday: "long",
+            month: "short",
+            day: "numeric",
+          })
+        : null;
+      
+      const date = isMultiDay ? `${startDateStr} - ${endDateStr}` : startDateStr;
+      
       const time = [
         starts.toLocaleTimeString(undefined, {
           hour: "numeric",
@@ -153,6 +165,7 @@ export default function Home() {
         location: event.location,
         tags: event.tags,
         attendees: event.current_attendees,
+        isMultiDay: isMultiDay || undefined,
       };
     });
   }, [filteredEvents]);
@@ -269,6 +282,7 @@ function EventCard({
   location,
   tags,
   attendees,
+  isMultiDay,
 }: {
   title: string;
   club: string;
@@ -277,13 +291,21 @@ function EventCard({
   location: string;
   tags: string[];
   attendees: number;
+  isMultiDay?: boolean;
 }) {
   return (
     <article className="flex h-full flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-6 shadow-soft-sm">
       <div>
-        <p className="mb-1 text-sm font-medium uppercase tracking-wide text-primary-700">
-          {date}
-        </p>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <p className="text-sm font-medium uppercase tracking-wide text-primary-700">
+            {date}
+          </p>
+          {isMultiDay && (
+            <span className="shrink-0 rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700">
+              Multi-day
+            </span>
+          )}
+        </div>
         <h2 className="mb-2 text-2xl font-semibold text-neutral-700">{title}</h2>
         <p className="mb-4 text-sm text-neutral-500">{club}</p>
         <dl className="space-y-2 text-sm text-neutral-600">
@@ -386,4 +408,8 @@ function endOfDay(date: Date) {
   const result = new Date(date);
   result.setHours(23, 59, 59, 999);
   return result;
+}
+
+function formatDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }

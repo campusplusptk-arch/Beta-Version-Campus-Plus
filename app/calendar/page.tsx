@@ -89,13 +89,20 @@ export default function CalendarPage() {
     const map = new Map<string, EventRow[]>();
     
     events.forEach((event) => {
-      const eventDate = new Date(event.starts_at);
-      const dateKey = formatDateKey(eventDate);
+      const startDate = new Date(event.starts_at);
+      const endDate = event.ends_at ? new Date(event.ends_at) : startDate;
       
-      if (!map.has(dateKey)) {
-        map.set(dateKey, []);
-      }
-      map.get(dateKey)!.push(event);
+      // Get all days the event spans
+      const eventDays = getDaysBetween(startDate, endDate);
+      
+      // Add event to each day it spans
+      eventDays.forEach((day) => {
+        const dateKey = formatDateKey(day);
+        if (!map.has(dateKey)) {
+          map.set(dateKey, []);
+        }
+        map.get(dateKey)!.push(event);
+      });
     });
     
     return map;
@@ -266,19 +273,33 @@ export default function CalendarPage() {
                       </span>
                       
                       {hasEvents && (
-                        <div className="mt-1 flex flex-wrap gap-0.5">
-                          {dayEvents.slice(0, 3).map((event, idx) => (
-                            <div
-                              key={event.id}
-                              className={`h-1.5 flex-1 rounded-full ${
-                                idx === 0
-                                  ? "bg-primary-600"
-                                  : idx === 1
-                                  ? "bg-primary-400"
-                                  : "bg-primary-300"
-                              }`}
-                            />
-                          ))}
+                        <div className="mt-1 flex flex-col gap-0.5">
+                          {dayEvents.slice(0, 3).map((event, idx) => {
+                            const eventInfo = isEventOnDate(event, date);
+                            const isMultiDay = event.ends_at && formatDateKey(new Date(event.starts_at)) !== formatDateKey(new Date(event.ends_at));
+                            
+                            return (
+                              <div
+                                key={`${event.id}-${date.getTime()}`}
+                                className={`h-1.5 w-full ${
+                                  idx === 0
+                                    ? "bg-primary-600"
+                                    : idx === 1
+                                    ? "bg-primary-400"
+                                    : "bg-primary-300"
+                                } ${
+                                  isMultiDay && !eventInfo.isStart && !eventInfo.isEnd
+                                    ? "rounded-none"
+                                    : isMultiDay && eventInfo.isStart
+                                    ? "rounded-l-full rounded-r-none"
+                                    : isMultiDay && eventInfo.isEnd
+                                    ? "rounded-r-full rounded-l-none"
+                                    : "rounded-full"
+                                }`}
+                                title={`${event.title}${isMultiDay ? ` (${formatDateKey(new Date(event.starts_at))} - ${formatDateKey(new Date(event.ends_at))})` : ''}`}
+                              />
+                            );
+                          })}
                         </div>
                       )}
                       
@@ -312,6 +333,19 @@ export default function CalendarPage() {
                       {selectedDateEvents.map((event) => {
                         const starts = new Date(event.starts_at);
                         const ends = event.ends_at ? new Date(event.ends_at) : null;
+                        const isMultiDay = ends && formatDateKey(starts) !== formatDateKey(ends);
+                        
+                        const startDateStr = starts.toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        });
+                        const endDateStr = ends
+                          ? ends.toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })
+                          : null;
+                        
                         const time = [
                           starts.toLocaleTimeString("en-US", {
                             hour: "numeric",
@@ -332,13 +366,40 @@ export default function CalendarPage() {
                             key={event.id}
                             className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 transition-all hover:border-primary-300 hover:shadow-soft"
                           >
-                            <h4 className="mb-1 text-lg font-semibold text-neutral-700">
-                              {event.title}
-                            </h4>
+                            <div className="mb-1 flex items-start justify-between gap-2">
+                              <h4 className="text-lg font-semibold text-neutral-700">
+                                {event.title}
+                              </h4>
+                              {isMultiDay && (
+                                <span className="shrink-0 rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700">
+                                  Multi-day
+                                </span>
+                              )}
+                            </div>
                             <p className="mb-2 text-sm text-neutral-500">
                               {event.club}
                             </p>
                             <div className="mb-3 space-y-1 text-sm text-neutral-600">
+                              <div className="flex items-center gap-2">
+                                <svg
+                                  className="h-4 w-4 text-primary-600"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                  />
+                                </svg>
+                                <span>
+                                  {isMultiDay
+                                    ? `${startDateStr} - ${endDateStr}`
+                                    : startDateStr}
+                                </span>
+                              </div>
                               <div className="flex items-center gap-2">
                                 <svg
                                   className="h-4 w-4 text-primary-600"
@@ -459,5 +520,37 @@ export default function CalendarPage() {
 
 function formatDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function getDaysBetween(startDate: Date, endDate: Date): Date[] {
+  const days: Date[] = [];
+  const current = new Date(startDate);
+  current.setHours(0, 0, 0, 0);
+  
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
+  
+  while (current <= end) {
+    days.push(new Date(current));
+    current.setDate(current.getDate() + 1);
+  }
+  
+  return days;
+}
+
+function isEventOnDate(event: EventRow, date: Date): { isOnDate: boolean; isStart: boolean; isEnd: boolean } {
+  const eventStart = new Date(event.starts_at);
+  eventStart.setHours(0, 0, 0, 0);
+  const eventEnd = event.ends_at ? new Date(event.ends_at) : eventStart;
+  eventEnd.setHours(23, 59, 59, 999);
+  
+  const checkDate = new Date(date);
+  checkDate.setHours(0, 0, 0, 0);
+  
+  const isOnDate = checkDate >= eventStart && checkDate <= eventEnd;
+  const isStart = formatDateKey(checkDate) === formatDateKey(eventStart);
+  const isEnd = formatDateKey(checkDate) === formatDateKey(eventEnd);
+  
+  return { isOnDate, isStart, isEnd };
 }
 
